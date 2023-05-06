@@ -4,7 +4,7 @@ More tools coming soon!
 
 ## Xacro Generator
 
-An easy was to create your robot's URDF & Xacro files.
+An easy way to create your robot's URDF & Xacro files.
 
 ### Linux Usage
 
