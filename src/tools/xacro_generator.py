@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-#Define joints, links, properties, etc for a ROS2 robot and output both a xacro & urdf
+#This ROS2 executable defines joints, links, properties, etc for a ROS2 robot and outputs both a xacro & urdf
 
 import os
 
@@ -21,8 +21,6 @@ def create_header(outfile, robot_name, properties):
     '''
     outfile.write(text)
     return(text)
-
-
 
 def create_link(outfile, link_name, color):
     text = '''<link name="{}">
@@ -51,17 +49,19 @@ def create_link(outfile, link_name, color):
     outfile.write(text)
     return(text)
 
-def create_joint(outfile, joint_name, parent, child, ox, oy, oz, ax, ay, az, limit_lower, limit_upper, joint_type, effort, velocity):
+def create_joint(outfile, joint_name, parent, child, ox, oy, oz, roll, pitch, yaw, ax, ay, az, limit_lower, limit_upper, joint_type, effort, velocity):
     text = '''<joint name="{}" type="{}">
       <parent link="{}"/>
       <child link = "{}"/>
-      <origin xyz="{} {} {}" rpy="0 0 0"/>
-      <axis xyz="{} {} {}"/>
+      <origin xyz="{} {} {}" rpy="{} {} {}"/>
+      '''.format(joint_name, joint_type, parent, child, ox, oy, oz, roll, pitch, yaw)
+    if joint_type != 'fixed':
+      text += '''<axis xyz="{} {} {}"/>
       <limit lower="{}" upper="{}" effort="{}" velocity="{}"/>
-</joint>'''.format(joint_name, joint_type, parent, child, ox, oy, oz, ax, ay, az, limit_lower, limit_upper, effort, velocity)
+      '''.format(ax, ay, az, limit_lower, limit_upper, effort, velocity)
+    text += '</joint>\n'
     outfile.write(text)
     return(text)
-
 
 #START EDITING HERE
 def run():
@@ -72,12 +72,13 @@ def run():
   v = 1 #joint angular velocity
   effort = 1 #joint effort
 
-  #{joint_name:[joint_name, parent, child, origin x, origin y, origin z, axis x, axis y, axis z, limit_lower, limit_upper, joint_type, effort, velocity]}
+  #{joint_name:[joint_name, parent, child, origin x, origin y, origin z, roll, pitch, yaw, axis x, axis y, axis z, limit_lower, limit_upper, joint_type, effort, velocity]}
   joints = {'spine_x':['spine_x', 'torso_lower', 'torso_mid', 0, 0, 0, 1, 0, 0, 0, .22, 'revolute', effort, v],     #joint examples
-          'spine_z':['spine_z', 'torso_mid', 'torso_upper', 0, 0, .1, 0, 0, 1, -.22, .22, 'revolute', effort, v]
+          'spine_z':['spine_z', 'torso_mid', 'torso_upper', 0, 0, .1, 0, 0, 1, -.22, .22, 'revolute', effort, v],
+          'backpack_joint':['backpack_joint', 'torso_upper', 'backpack', 0, .12, .1, 0, 0, 0, 0, 0, 1, -.22, .22, 'fixed', effort, v], #axis, limits, etc disregarded for fixed joints
           }
 
-  #Define link names (and stl colors)
+  #Define link names and link stl colors
   if mesh_type == 'STL':                                                         
     links = {'torso_lower':'Black',
             'torso_mid':'Black',
@@ -89,10 +90,10 @@ def run():
             'torso_upper':'None'
             }    
 
-  properties = {'torso_lower_mesh':'file://{}/{}/torso_lower.{}'.format(output_location, mesh_type, mesh_type.lower()),
-                'torso_mid_mesh':'file://{}/{}/torso_mid.{}'.format(output_location, mesh_type, mesh_type.lower()),
-                'torso_upper_mesh':'file://{}/{}/torso_upper.{}'.format(output_location, mesh_type, mesh_type.lower()),
-                'Black':'0.0 0.0 0.0 1.0'}
+  #define STL colors and mesh locations
+  properties = {'Black':'0.0 0.0 0.0 1.0'}
+  for link in links:
+     properties[link + '_mesh'] = 'file://{}/{}/{}.{}'.format(output_location, mesh_type, link, mesh_type.lower())
 
   
   with open('{}/my_robot.urdf.xacro'.format(output_location), 'w') as outfile:
@@ -106,9 +107,11 @@ def run():
         joint_text = create_joint(outfile, *joints[joint]) # unpack value
         outfile.write('\n')
     outfile.write('\n</robot>')
+
     print('header_text:{}'.format(header_text))
     print('link_text:{}'.format(link_text))
     print('joint_text:{}'.format(joint_text))
+
   os.system('ros2 run xacro xacro {}/my_robot.urdf.xacro > {}/my_robot.urdf'.format(output_location, output_location)) #generate urdf from xacro
 
 run()
