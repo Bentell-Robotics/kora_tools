@@ -4,21 +4,21 @@
 
 import os
 
-def create_header(outfile, robot_name, properties):
+def create_header(outfile, robot_name, properties, world_name, robot_base_name): 
     text = '''<?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="{}">'''.format(robot_name)
 
     for prop in properties:
         text += '''\n<xacro:property name="{}" value="{}"/>'''.format(prop, properties[prop])
-    text += '''\n\n<link name="world"/>
-<joint name="world_joint" type="fixed">
-  <parent link="world"/>
-  <child link="torso_lower"/>
+    text += '''\n\n<link name="{}"/>
+<joint name="{}_joint" type="fixed">
+  <parent link="{}"/>
+  <child link="{}"/>
   <origin rpy="0 0 0" xyz="0 0 0"/>
 </joint>
 
 
-    '''
+    '''.format(world_name, world_name, world_name, robot_base_name)
     outfile.write(text)
     return(text)
 
@@ -97,7 +97,7 @@ def run():
 
   
   with open('{}/my_robot.urdf.xacro'.format(output_location), 'w') as outfile:
-    header_text = create_header(outfile, robot_name, properties)
+    header_text = create_header(outfile, robot_name, properties, 'world', 'base') #Assumes fixed joint between robot & world
     outfile.write('\n\n')
     for link in links:
         link_text = create_link(outfile, link, links[link])
